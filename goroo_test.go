@@ -38,6 +38,7 @@ func TestHTTPClient(t *testing.T) {
 
 	params = map[string]string{
 		"table": "Users",
+		"query": "message:@test",
 	}
 	result, _ = client.Call("select", params)
 	if len(result.RawData) == 0 {
