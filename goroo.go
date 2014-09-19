@@ -45,14 +45,13 @@ func (client *GroongaClient) Call(command string, params map[string]string) (res
 		client.Protocol, client.Host, client.Port, command, v.Encode())
 	resp, err := http.Get(requestUrl)
 	if err != nil {
-		fmt.Errorf("http.Get() error: %v", err)
-		return result, err
+		return result, fmt.Errorf("http.Get() error: %v", err)
 	}
 	defer resp.Body.Close()
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		fmt.Errorf("response read error: %v", err)
+		return result, fmt.Errorf("response read error: %v", err)
 	}
 
 	result, err = setResult(body)
