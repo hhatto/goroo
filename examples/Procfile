@@ -1,0 +1,2 @@
+groonga_http: groonga -s -l 8 --log-path ./.grn_http.log --protocol http ./.grn.db
+groonga_gqtp: groonga -s -l 8 --log-path ./.grn_gqtp.log --protocol gqtp ./.grn.db
