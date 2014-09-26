@@ -1,4 +1,4 @@
-# goroo
+# goroo (ごろう)
 
 Yet Another Groonga Client for Go.
 
