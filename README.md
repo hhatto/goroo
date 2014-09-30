@@ -1,4 +1,4 @@
-# goroo (ごろう)
+# goroo (ごろう) [![Build Status](https://travis-ci.org/hhatto/goroo.png?branch=master)](https://travis-ci.org/hhatto/goroo)
 
 Yet Another Groonga Client for Go.
 
