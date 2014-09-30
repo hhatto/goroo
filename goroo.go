@@ -125,6 +125,8 @@ func (gqtp *GQTP) toByte() (b []byte) {
 	return buffer.Bytes()
 }
 
+var doGet = http.Get
+
 type GroongaClient struct {
 	Protocol string
 	Host     string
@@ -224,7 +226,7 @@ func (client *GroongaClient) callHTTP(command string, params map[string]string) 
 	}
 	requestUrl := fmt.Sprintf("%s://%s:%d/d/%s?%s",
 		client.Protocol, client.Host, client.Port, command, v.Encode())
-	resp, err := http.Get(requestUrl)
+	resp, err := doGet(requestUrl)
 	if err != nil {
 		return nil, fmt.Errorf("http.Get() error: %v", err)
 	}
