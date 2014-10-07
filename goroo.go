@@ -249,7 +249,6 @@ func (client *GroongaClient) Call(command string, params map[string]string) (res
 	if client.Protocol == "gqtp" {
 		// GQTP
 		body, err = client.callGQTP(command, params)
-		fmt.Println(string(body))
 	} else {
 		// HTTP
 		body, err = client.callHTTP(command, params)

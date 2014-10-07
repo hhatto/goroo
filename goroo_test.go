@@ -33,7 +33,6 @@ func TestHTTPClient(t *testing.T) {
 		"key_type": "ShortText",
 	}
 	result, _ := client.Call("table_create", params)
-	fmt.Println(result)
 
 	params = map[string]string{
 		"table": "Users",
@@ -42,7 +41,6 @@ func TestHTTPClient(t *testing.T) {
 		"type":  "ShortText",
 	}
 	result, _ = client.Call("column_create", params)
-	fmt.Println(result)
 
 	doGet = func(string) (*http.Response, error) {
 		const body = "[[0,1412056029.84987,9.60826873779297e-05],2]"
@@ -58,7 +56,6 @@ func TestHTTPClient(t *testing.T) {
 		"values": "[{\"_key\":\"ken\",\"name\":\"Ken\"},{\"_key\":\"jim\",\"name\":\"Jim\"}]",
 	}
 	result, _ = client.Call("load", params)
-	fmt.Println(result)
 
 	doGet = func(string) (*http.Response, error) {
 		const body = "[[0,1412056029.8505,0.000298976898193359],[[[0],[[\"_id\",\"UInt32\"],[\"_key\",\"ShortText\"],[\"name\",\"ShortText\"]]]]]"
@@ -77,12 +74,22 @@ func TestHTTPClient(t *testing.T) {
 	if len(result.RawData) == 0 {
 		t.Errorf("response body not found")
 	}
+}
 
-	fmt.Println(result)
+func TestGQTPClientConnectError(t *testing.T) {
+	client := NewGroongaClient("gqtp", "localhost", 1)
+	params := map[string]string{
+		"table": "Users",
+		"query": "message:@test",
+	}
+	_, err := client.Call("select", params)
+	if err == nil {
+		t.Errorf("invalid sequence")
+	}
 }
 
 func TestGQTPClientError(t *testing.T) {
-	t.Skip("TODO: use mock")
+	//t.Skip("TODO: use mock")
 	client := NewGroongaClient("gqtp", "localhost", 10043)
 	params := map[string]string{
 		"table": "Users",
@@ -94,7 +101,7 @@ func TestGQTPClientError(t *testing.T) {
 	}
 }
 func TestGQTPClient(t *testing.T) {
-	t.Skip("TODO: use mock")
+	//t.Skip("TODO: use mock")
 	client := NewGroongaClient("gqtp", "localhost", 10043)
 	params := map[string]string{
 		"table": "Users",
@@ -103,5 +110,34 @@ func TestGQTPClient(t *testing.T) {
 	result, _ := client.Call("select", params)
 	if len(result.RawData) == 0 {
 		t.Errorf("response body not found")
+	}
+}
+
+// Benchmarks
+func BenchmarkHTTPClient(b *testing.B) {
+	client := NewGroongaClient("http", "localhost", 10041)
+	params := map[string]string{
+		"table": "Users",
+		"query": "name:@test",
+	}
+	for n := 0; n < b.N; n++ {
+		result, _ := client.Call("select", params)
+		if len(result.RawData) == 0 {
+			b.Errorf("response body not found")
+		}
+	}
+}
+
+func BenchmarkGQTPClient(b *testing.B) {
+	client := NewGroongaClient("gqtp", "localhost", 10043)
+	params := map[string]string{
+		"table": "Users",
+		"query": "name:@Jim",
+	}
+	for n := 0; n < b.N; n++ {
+		result, _ := client.Call("select", params)
+		if len(result.RawData) == 0 {
+			b.Errorf("response body not found")
+		}
 	}
 }
