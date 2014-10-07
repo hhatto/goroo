@@ -89,7 +89,7 @@ func TestGQTPClientConnectError(t *testing.T) {
 }
 
 func TestGQTPClientError(t *testing.T) {
-	//t.Skip("TODO: use mock")
+	t.Skip("TODO: use mock")
 	client := NewGroongaClient("gqtp", "localhost", 10043)
 	params := map[string]string{
 		"table": "Users",
@@ -101,7 +101,7 @@ func TestGQTPClientError(t *testing.T) {
 	}
 }
 func TestGQTPClient(t *testing.T) {
-	//t.Skip("TODO: use mock")
+	t.Skip("TODO: use mock")
 	client := NewGroongaClient("gqtp", "localhost", 10043)
 	params := map[string]string{
 		"table": "Users",
