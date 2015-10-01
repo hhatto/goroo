@@ -113,6 +113,14 @@ func TestGQTPClient(t *testing.T) {
 	}
 }
 
+func TestEmptyParamerCommand(t *testing.T) {
+	client := NewGroongaClient("http", "localhost", 10041)
+	result, _ := client.Call("table_create", map[string]string{})
+	if len(result.RawData) == 0 {
+		t.Errorf("response body not found")
+	}
+}
+
 // Benchmarks
 func BenchmarkHTTPClient(b *testing.B) {
 	client := NewGroongaClient("http", "localhost", 10041)
