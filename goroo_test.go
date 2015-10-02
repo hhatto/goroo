@@ -14,6 +14,10 @@ type Response struct {
 }
 
 func TestHTTPClient(t *testing.T) {
+	oldDoGetFunc := doGet
+	defer func() {
+		doGet = oldDoGetFunc
+	}()
 	doGet = func(string) (*http.Response, error) {
 		const body = "[[-22,1412056029.84683,0.000826835632324219,\"already used name was assigned: <Users>\",[[\"grn_obj_register\",\"db.c\",7608]]],false]"
 		br := bufio.NewReader(strings.NewReader("HTTP/1.1 200 OK\r\n" +
@@ -108,6 +112,31 @@ func TestGQTPClient(t *testing.T) {
 		"query": "name:@Jim",
 	}
 	result, _ := client.Call("select", params)
+	if len(result.RawData) == 0 {
+		t.Errorf("response body not found")
+	}
+}
+
+func TestEmptyParameterCommand(t *testing.T) {
+	oldDoGetFunc := doGet
+	defer func() {
+		doGet = oldDoGetFunc
+	}()
+	doGet = func(string) (*http.Response, error) {
+		const body = "[[0,1443754547.04538,0.000156879425048828],[[[\"id\",\"UInt32\"],[\"name\",\"ShortText\"],[\"path\",\"ShortText\"],[\"flags\",\"ShortText\"],[\"domain\",\"ShortText\"],[\"range\",\"ShortText\"],[\"default_tokenizer\",\"ShortText\"],[\"normalizer\",\"ShortText\"]]]]"
+		br := bufio.NewReader(strings.NewReader("HTTP/1.1 200 OK\r\n" +
+			fmt.Sprintf("Content-Length: %d\r\n", len(body)) +
+			"\r\n" +
+			body))
+		resp, _ := http.ReadResponse(br, &http.Request{Method: "GET"})
+		return resp, nil
+	}
+
+	client := NewGroongaClient("http", "localhost", 10041)
+	result, err := client.Call("table_list", map[string]string{})
+	if err != nil {
+		t.Errorf("error response")
+	}
 	if len(result.RawData) == 0 {
 		t.Errorf("response body not found")
 	}

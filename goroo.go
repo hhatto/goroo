@@ -9,7 +9,6 @@ import (
 	"net"
 	"net/http"
 	"net/url"
-	"strings"
 )
 
 const (
@@ -241,10 +240,6 @@ func (client *GroongaClient) callHTTP(command string, params map[string]string) 
 }
 
 func (client *GroongaClient) Call(command string, params map[string]string) (result GroongaResult, err error) {
-	if len(params) == 0 {
-		return result, nil
-	}
-
 	var body []byte
 	if client.Protocol == "gqtp" {
 		// GQTP
@@ -267,11 +262,12 @@ func (client *GroongaClient) Call(command string, params map[string]string) (res
 }
 
 func (client *GroongaClient) setResult(body []byte) (result GroongaResult, err error) {
-	result.RawData = fmt.Sprintf("%s", body)
+	result.RawData = string(body)
 
 	var data interface{}
-	dec := json.NewDecoder(strings.NewReader(result.RawData))
-	dec.Decode(&data)
+	if err := json.Unmarshal(body, &data); err != nil {
+		return result, err
+	}
 
 	if client.Protocol == "http" {
 		grnInfo := data.([]interface{})
