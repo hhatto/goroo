@@ -240,10 +240,6 @@ func (client *GroongaClient) callHTTP(command string, params map[string]string) 
 }
 
 func (client *GroongaClient) Call(command string, params map[string]string) (result GroongaResult, err error) {
-	if len(params) == 0 {
-		return result, nil
-	}
-
 	var body []byte
 	if client.Protocol == "gqtp" {
 		// GQTP
@@ -266,7 +262,7 @@ func (client *GroongaClient) Call(command string, params map[string]string) (res
 }
 
 func (client *GroongaClient) setResult(body []byte) (result GroongaResult, err error) {
-	result.RawData =string(body)
+	result.RawData = string(body)
 
 	var data interface{}
 	if err := json.Unmarshal(body, &data); err != nil {
