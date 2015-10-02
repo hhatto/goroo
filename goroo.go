@@ -190,7 +190,7 @@ func (client *GroongaClient) callGQTP(command string, params map[string]string) 
 	resp := make([]byte, 1024)
 	nr, err := conn.Read(resp)
 	if err != nil {
-		log.Println("read error %v", err)
+		log.Printf("read error %v\n", err)
 		return b, err
 	}
 
