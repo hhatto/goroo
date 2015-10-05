@@ -8,20 +8,20 @@ import (
 	"net/url"
 )
 
-type HttpClient struct {
+type httpClient struct {
 	host string
 }
 
-func (h *HttpClient) Call(command string, params map[string]string) (*GroongaResult, error) {
+func (h *httpClient) Call(command string, params map[string]string) (*GroongaResult, error) {
 	rawurl := fmt.Sprintf("%s://%s", "http", h.host)
-	body, err := callHTTP(rawurl, command, params)
+	body, err := runCommand(rawurl, command, params)
 	if err != nil {
 		return nil, err
 	}
-	return setResult(body)
+	return parseResult(body)
 }
 
-func callHTTP(rawurl, command string, params map[string]string) ([]byte, error) {
+func runCommand(rawurl, command string, params map[string]string) ([]byte, error) {
 	v := url.Values{}
 	for value, name := range params {
 		v.Set(value, name)
@@ -41,7 +41,7 @@ func callHTTP(rawurl, command string, params map[string]string) ([]byte, error) 
 	return body, nil
 }
 
-func setResult(body []byte) (*GroongaResult, error) {
+func parseResult(body []byte) (*GroongaResult, error) {
 	var data interface{}
 	if err := json.Unmarshal(body, &data); err != nil {
 		return nil, err
@@ -62,6 +62,6 @@ func setResult(body []byte) (*GroongaResult, error) {
 	return result, nil
 }
 
-func NewHttpClient(host string) Client {
-	return &HttpClient{host}
+func newHttpClient(host string) Client {
+	return &httpClient{host}
 }
