@@ -144,6 +144,13 @@ type Client interface {
 	Call(command string, params map[string]string) (*GroongaResult, error)
 }
 
+func NewClient(protocol, host string, port int) Client {
+	if protocol == "http" {
+		return newHttpClient(fmt.Sprintf("%s://%s:%d", protocol, host, port))
+	}
+	return nil
+}
+
 func NewGroongaClient(protocol, host string, port int) *GroongaClient {
 	client := &GroongaClient{
 		Protocol: protocol,
