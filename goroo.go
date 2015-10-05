@@ -1,352 +1,300 @@
 package goroo
 
 import (
-	"bytes"
-	"encoding/json"
+	"bufio"
 	"fmt"
-	"io/ioutil"
-	"log"
-	"net"
 	"net/http"
+	"net/http/httptest"
 	"net/url"
+	"strings"
+
+	"testing"
 )
 
-const (
-	GRN_GQTP_FLAGS_MORE  byte = 0x01
-	GRN_GQTP_FLAGS_TAIL       = 0x02
-	GRN_GQTP_FLAGS_HEAD       = 0x04
-	GRN_GQTP_FLAGS_QUIET      = 0x08
-	GRN_GQTP_FLAGS_QUIT       = 0x10
-)
-const GRN_GQTP_HEADER_SIZE int = 24
-
-var GRN_GQTP_STATUS map[uint32]string = map[uint32]string{
-	0:     "SUCCESS",
-	1:     "END_OF_DATA",
-	65535: "UNKNOWN_ERROR",
-	65534: "OPERATION_NOT_PERMITTED",
-	65533: "NO_SUCH_FILE_OR_DIRECTORY",
-	65532: "NO_SUCH_PROCESS",
-	65531: "INTERRUPTED_FUNCTION_CALL",
-	65530: "INPUT_OUTPUT_ERROR",
-	65529: "NO_SUCH_DEVICE_OR_ADDRESS",
-	65528: "ARG_LIST_TOO_LONG",
-	65527: "EXEC_FORMAT_ERROR",
-	65526: "BAD_FILE_DESCRIPTOR",
-	65525: "NO_CHILD_PROCESSES",
-	65524: "RESOURCE_TEMPORARILY_UNAVAILABLE",
-	65523: "NOT_ENOUGH_SPACE",
-	65522: "PERMISSION_DENIED",
-	65521: "BAD_ADDRESS",
-	65520: "RESOURCE_BUSY",
-	65519: "FILE_EXISTS",
-	65518: "IMPROPER_LINK",
-	65517: "NO_SUCH_DEVICE",
-	65516: "NOT_A_DIRECTORY",
-	65515: "IS_A_DIRECTORY",
-	65514: "INVALID_ARGUMENT",
-	65513: "TOO_MANY_OPEN_FILES_IN_SYSTEM",
-	65512: "TOO_MANY_OPEN_FILES",
-	65511: "INAPPROPRIATE_I_O_CONTROL_OPERATION",
-	65510: "FILE_TOO_LARGE",
-	65509: "NO_SPACE_LEFT_ON_DEVICE",
-	65508: "INVALID_SEEK",
-	65507: "READ_ONLY_FILE_SYSTEM",
-	65506: "TOO_MANY_LINKS",
-	65505: "BROKEN_PIPE",
-	65504: "DOMAIN_ERROR",
-	65503: "RESULT_TOO_LARGE",
-	65502: "RESOURCE_DEADLOCK_AVOIDED",
-	65501: "NO_MEMORY_AVAILABLE",
-	65500: "FILENAME_TOO_LONG",
-	65499: "NO_LOCKS_AVAILABLE",
-	65498: "FUNCTION_NOT_IMPLEMENTED",
-	65497: "DIRECTORY_NOT_EMPTY",
-	65496: "ILLEGAL_BYTE_SEQUENCE",
-	65495: "SOCKET_NOT_INITIALIZED",
-	65494: "OPERATION_WOULD_BLOCK",
-	65493: "ADDRESS_IS_NOT_AVAILABLE",
-	65492: "NETWORK_IS_DOWN",
-	65491: "NO_BUFFER",
-	65490: "SOCKET_IS_ALREADY_CONNECTED",
-	65489: "SOCKET_IS_NOT_CONNECTED",
-	65488: "SOCKET_IS_ALREADY_SHUTDOWNED",
-	65487: "OPERATION_TIMEOUT",
-	65486: "CONNECTION_REFUSED",
-	65485: "RANGE_ERROR",
-	65484: "TOKENIZER_ERROR",
-	65483: "FILE_CORRUPT",
-	65482: "INVALID_FORMAT",
-	65481: "OBJECT_CORRUPT",
-	65480: "TOO_MANY_SYMBOLIC_LINKS",
-	65479: "NOT_SOCKET",
-	65478: "OPERATION_NOT_SUPPORTED",
-	65477: "ADDRESS_IS_IN_USE",
-	65476: "ZLIB_ERROR",
-	65475: "LZO_ERROR",
-	65474: "STACK_OVER_FLOW",
-	65473: "SYNTAX_ERROR",
-	65472: "RETRY_MAX",
-	65471: "INCOMPATIBLE_FILE_FORMAT",
-	65470: "UPDATE_NOT_ALLOWED",
-	65469: "TOO_SMALL_OFFSET",
-	65468: "TOO_LARGE_OFFSET",
-	65467: "TOO_SMALL_LIMIT",
-	65466: "CAS_ERROR",
-	65465: "UNSUPPORTED_COMMAND_VERSION",
+type Response struct {
+	path, query, contenttype, body string
 }
 
-type GQTP struct {
-	Protocol  byte
-	QueryType byte
-	KeyLength []byte // 2byte
-	Level     byte
-	Flags     byte
-	Status    []byte // 2byte
-	Size      []byte // 4byte
-	Opaque    []byte // 4byte
-	Cas       []byte // 8byte
-	Body      []byte
-}
+func TestHttp_TableList_Empty_Success(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		const body = "[[0,1444022807.258,0.0],[[[\"id\",\"UInt32\"],[\"name\",\"ShortText\"],[\"path\",\"ShortText\"],[\"flags\",\"ShortText\"],[\"domain\",\"ShortText\"],[\"range\",\"ShortText\"],[\"default_tokenizer\",\"ShortText\"],[\"normalizer\",\"ShortText\"]]]]"
+		fmt.Fprintln(w, body)
+	}))
+	defer ts.Close()
 
-func (gqtp *GQTP) toByte() (b []byte) {
-	buffer := bytes.NewBuffer(b)
-	buffer.WriteByte(gqtp.Protocol)
-	buffer.WriteByte(gqtp.QueryType)
-	buffer.Write(gqtp.KeyLength)
-	buffer.WriteByte(gqtp.Level)
-	buffer.WriteByte(gqtp.Flags)
-	buffer.Write(gqtp.Status)
-	buffer.Write(gqtp.Size)
-	buffer.Write(gqtp.Opaque)
-	buffer.Write(gqtp.Cas)
-	buffer.Write(gqtp.Body)
-	return buffer.Bytes()
-}
-
-var doGet = http.Get
-
-type GroongaClient struct {
-	Protocol string
-	Host     string
-	Port     int
-}
-
-type GroongaResult struct {
-	RawData     string
-	Status      int
-	StartTime   float64
-	ElapsedTime float64
-	Body        interface{}
-}
-
-type Client interface {
-	Call(command string, params map[string]string) (*GroongaResult, error)
-}
-
-type HttpClient struct {
-	host string
-}
-
-func (h *HttpClient) Call(command string, params map[string]string) (*GroongaResult, error) {
-	rawurl := fmt.Sprintf("%s://%s", "http", h.host)
-	body, err := callHTTP(rawurl, command, params)
+	u, err := url.Parse(ts.URL)
 	if err != nil {
-		return nil, err
+		t.Error(err)
 	}
-	return setResult(body)
+	client := NewHttpClient(u.Host)
+	res, err := client.Call("table_list", map[string]string{})
+	if err != nil {
+		t.Error(err)
+	}
+	if res.Status != 0 {
+		t.Errorf("status not zero.[%d]", res.Status)
+	}
+	if len(res.Body.([]interface{})) != 1 {
+		t.Errorf("body fail.[%s]", res.Body)
+	}
 }
 
-func callHTTP(rawurl, command string, params map[string]string) ([]byte, error) {
-	v := url.Values{}
-	for value, name := range params {
-		v.Set(value, name)
-	}
-	requestUrl := fmt.Sprintf("%s/d/%s?%s", rawurl, command, v.Encode())
-	resp, err := http.Get(requestUrl)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
+func TestHttp_TableList_Count1_Success(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		const body = "[[0,1444024497.318,0.0469999313354492],[[[\"id\",\"UInt32\"],[\"name\",\"ShortText\"],[\"path\",\"ShortText\"],[\"flags\",\"ShortText\"],[\"domain\",\"ShortText\"],[\"range\",\"ShortText\"],[\"default_tokenizer\",\"ShortText\"],[\"normalizer\",\"ShortText\"]],[256,\"TestGQTPClinet\",\"./markdown.db.0000100\",\"TABLE_HASH_KEY|PERSISTENT\",null,null,null,null]]]"
+		fmt.Fprintln(w, body)
+	}))
+	defer ts.Close()
 
-	body, err := ioutil.ReadAll(resp.Body)
+	u, err := url.Parse(ts.URL)
 	if err != nil {
-		return nil, err
+		t.Error(err)
 	}
-
-	return body, nil
+	client := NewHttpClient(u.Host)
+	res, err := client.Call("table_list", map[string]string{})
+	if err != nil {
+		t.Error(err)
+	}
+	if res.Status != 0 {
+		t.Errorf("status not zero.[%d]", res.Status)
+	}
+	if len(res.Body.([]interface{})) != 2 {
+		t.Errorf("body fail.[%s]", res.Body)
+	}
 }
 
-func setResult(body []byte) (result *GroongaResult, err error) {
-	var data interface{}
-	if err = json.Unmarshal(body, &data); err != nil {
-		return nil, err
+func TestHttp_ColumnCreate_UserName_Success(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		const body = "[[0,1444025635.392,0.00300002098083496],true]"
+		fmt.Fprintln(w, body)
+	}))
+	defer ts.Close()
+
+	u, err := url.Parse(ts.URL)
+	if err != nil {
+		t.Error(err)
+	}
+	client := NewHttpClient(u.Host)
+	res, err := client.Call("table_list", map[string]string{})
+	if err != nil {
+		t.Error(err)
+	}
+	if res.Status != 0 {
+		t.Errorf("status not zero.[%d]", res.Status)
+	}
+	if res.Body.(bool) != true {
+		t.Errorf("body fail.[%s]", res.Body)
+	}
+}
+
+func TestHttp_ColumnCreate_UserName_Fail(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		const body = "[[-22,1444025814.842,0.0,\"already used name was assigned: <user_name>\",[[\"grn_obj_register\",\"db.c\",8966]]],false]"
+		fmt.Fprintln(w, body)
+	}))
+	defer ts.Close()
+
+	u, err := url.Parse(ts.URL)
+	if err != nil {
+		t.Error(err)
+	}
+	client := NewHttpClient(u.Host)
+	res, err := client.Call("table_list", map[string]string{})
+	if err == nil {
+		t.Errorf("err is nil")
+	}
+	if res.Status != -22 {
+		t.Errorf("status not zero.[%d]", res.Status)
+	}
+	if res.Body.(bool) != false {
+		t.Errorf("body fail.[%s]", res.Body)
+	}
+}
+
+func TestHTTPClient(t *testing.T) {
+	t.SkipNow()
+	doGet = func(string) (*http.Response, error) {
+		const body = "[[-22,1412056029.84683,0.000826835632324219,\"already used name was assigned: <Users>\",[[\"grn_obj_register\",\"db.c\",7608]]],false]"
+		br := bufio.NewReader(strings.NewReader("HTTP/1.1 200 OK\r\n" +
+			fmt.Sprintf("Content-Length: %d\r\n", len(body)) +
+			"\r\n" +
+			body))
+		resp, _ := http.ReadResponse(br, &http.Request{Method: "GET"})
+		return resp, nil
 	}
 
-	grnInfo := data.([]interface{})
-	grnHeader := grnInfo[0].([]interface{})
-	result = new(GroongaResult)
-	result.RawData = string(body)
-	result.Status = int(grnHeader[0].(float64))
-	result.StartTime = grnHeader[1].(float64)
-	result.ElapsedTime = grnHeader[2].(float64)
-	result.Body = grnInfo[1]
+	//client := GroongaClient{Protocol: "http", Host: "localhost", Port: 10041}
+	client := NewGroongaClient("http", "localhost", 10041)
+
+	params := map[string]string{
+		"name":     "Users",
+		"flags":    "TABLE_HASH_KEY",
+		"key_type": "ShortText",
+	}
+	result, _ := client.Call("table_create", params)
+
+	params = map[string]string{
+		"table": "Users",
+		"name":  "name",
+		"flags": "COLUMN_SCALAR",
+		"type":  "ShortText",
+	}
+	result, _ = client.Call("column_create", params)
+
+	doGet = func(string) (*http.Response, error) {
+		const body = "[[0,1412056029.84987,9.60826873779297e-05],2]"
+		br := bufio.NewReader(strings.NewReader("HTTP/1.1 200 OK\r\n" +
+			fmt.Sprintf("Content-Length: %d\r\n", len(body)) +
+			"\r\n" +
+			body))
+		resp, _ := http.ReadResponse(br, &http.Request{Method: "GET"})
+		return resp, nil
+	}
+	params = map[string]string{
+		"table":  "Users",
+		"values": "[{\"_key\":\"ken\",\"name\":\"Ken\"},{\"_key\":\"jim\",\"name\":\"Jim\"}]",
+	}
+	result, _ = client.Call("load", params)
+
+	doGet = func(string) (*http.Response, error) {
+		const body = "[[0,1412056029.8505,0.000298976898193359],[[[0],[[\"_id\",\"UInt32\"],[\"_key\",\"ShortText\"],[\"name\",\"ShortText\"]]]]]"
+		br := bufio.NewReader(strings.NewReader("HTTP/1.1 200 OK\r\n" +
+			fmt.Sprintf("Content-Length: %d\r\n", len(body)) +
+			"\r\n" +
+			body))
+		resp, _ := http.ReadResponse(br, &http.Request{Method: "GET"})
+		return resp, nil
+	}
+	params = map[string]string{
+		"table": "Users",
+		"query": "name:@test",
+	}
+	result, _ = client.Call("select", params)
+	if len(result.RawData) == 0 {
+		t.Errorf("response body not found")
+	}
+}
+
+func TestGQTPClientConnectError(t *testing.T) {
+	client := NewGroongaClient("gqtp", "localhost", 1)
+	params := map[string]string{
+		"table": "Users",
+		"query": "message:@test",
+	}
+	_, err := client.Call("select", params)
+	if err == nil {
+		t.Errorf("invalid sequence")
+	}
+}
+
+func TestGQTPClientError(t *testing.T) {
+	t.Skip("TODO: use mock")
+	client := NewGroongaClient("gqtp", "localhost", 10043)
+	params := map[string]string{
+		"table": "Users",
+		"query": "message:@test",
+	}
+	_, err := client.Call("select", params)
+	if err == nil {
+		t.Errorf("invalid sequence")
+	}
+}
+func TestGQTPClient(t *testing.T) {
+	t.Skip("TODO: use mock")
+	client := NewGroongaClient("gqtp", "localhost", 10043)
+	params := map[string]string{
+		"table": "Users",
+		"query": "name:@Jim",
+	}
+	result, _ := client.Call("select", params)
+	if len(result.RawData) == 0 {
+		t.Errorf("response body not found")
+	}
+}
+
+func Test_HttpClient_TableListCommnad(t *testing.T) {
+	t.SkipNow()
+	client := NewGroongaClient("http", "localhost", 10041)
+	result, err := client.Call("table_list", map[string]string{})
+	if err != nil {
+		t.Errorf("response body not found")
+	}
 	if result.Status != 0 {
-		return result, fmt.Errorf("%d - %s", result.Status, grnHeader[3])
+		t.Errorf("result status not zero.[%d]", result.Status)
 	}
-
-	return result, nil
+	if len(result.RawData) == 0 {
+		t.Errorf("response body not found")
+	}
 }
 
-func NewHttpClient(host string) Client {
-	return &HttpClient{host}
+func Test_GQTPClient_TableCreateCommnad(t *testing.T) {
+	t.SkipNow()
+	client := NewGroongaClient("gqtp", "localhost", 10043)
+	result, err := client.Call("table_create", map[string]string{
+		"name": "TestGQTPClinet",
+	})
+	if err != nil {
+		t.Errorf("err is not nil [%s]", err)
+	}
+	if result.Status != 0 {
+		t.Errorf("result status not zero.[%d]", result.Status)
+	}
 }
 
-func NewGroongaClient(protocol, host string, port int) *GroongaClient {
-	client := &GroongaClient{
-		Protocol: protocol,
-		Host:     host,
-		Port:     port,
+func Test_GQTPClient_TableListCommnad(t *testing.T) {
+	t.SkipNow()
+	client := NewGroongaClient("gqtp", "localhost", 10043)
+	result, err := client.Call("table_list", map[string]string{})
+	if err != nil {
+		t.Errorf("err is not nil [%s]", err)
 	}
-	return client
+	if result.Status != 0 {
+		t.Errorf("result status not zero.[%d]", result.Status)
+	}
+	if len(result.RawData) == 0 {
+		t.Errorf("response body not found")
+	}
 }
 
-func (client *GroongaClient) callGQTP(command string, params map[string]string) (b []byte, err error) {
-	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", client.Host, client.Port))
+func Test_GQTPClient_TableRemoveCommnad(t *testing.T) {
+	t.SkipNow()
+	client := NewGroongaClient("gqtp", "localhost", 10043)
+	result, err := client.Call("table_remove", map[string]string{
+		"name": "TestGQTPClinet",
+	})
 	if err != nil {
-		log.Println("Dial error:", err)
-		return b, err
+		t.Errorf("err is not nil [%s]", err)
 	}
-	defer conn.Close()
-
-	buffer := bytes.NewBufferString(command)
-	for value, name := range params {
-		buffer.WriteString(fmt.Sprintf(" --%s '%s'", value, name))
+	if result.Status != 0 {
+		t.Errorf("result status not zero.[%d]", result.Status)
 	}
-	bodyLen := uint32(len(buffer.String()))
-
-	// encode request header and body
-	gqtp := GQTP{}
-	gqtp.Protocol = 0xc7
-	gqtp.QueryType = 0x02            // default is JSON
-	gqtp.KeyLength = make([]byte, 2) // not used
-	gqtp.Level = 0x00                // not used
-	gqtp.Flags = GRN_GQTP_FLAGS_TAIL
-	gqtp.Status = make([]byte, 2) // not used
-	gqtp.Size = []byte{
-		byte(0xff000000 & bodyLen),
-		byte(0x00ff0000 & bodyLen),
-		byte(0x0000ff00 & bodyLen),
-		byte(0x000000ff & bodyLen),
-	}
-	gqtp.Opaque = make([]byte, 4) // not used
-	gqtp.Cas = make([]byte, 8)    // not used
-	gqtp.Body = buffer.Bytes()
-
-	_, err = conn.Write(gqtp.toByte())
-	if err != nil {
-		return b, err
-	}
-
-	// TODO: recieve over 1024 byte
-	resp := make([]byte, 1024)
-	nr, err := conn.Read(resp)
-	if err != nil {
-		log.Println("read error %v", err)
-		return b, err
-	}
-
-	// decode respose header and body
-	if 0xc7 != byte(resp[0]) {
-		return b, fmt.Errorf("check response protocol NG 0x%x", resp[0])
-	}
-	//respGQTP.QueryType = byte(resp[1])
-	//respGQTP.Flags = resp[5]
-	if GRN_GQTP_FLAGS_TAIL != resp[5] {
-		return b, fmt.Errorf("flag: %v is not support", resp[5])
-	}
-	status := uint32(resp[7]) + uint32(resp[6])<<8
-	if status != 0 {
-		return b, fmt.Errorf("status error: [%d]%s", status, GRN_GQTP_STATUS[status])
-	}
-	respBodyLen := (uint32(resp[8])<<24)&0xff000000 +
-		(uint32(resp[9])<<16)&0x00ff0000 +
-		(uint32(resp[10])<<8)&0x0000ff00 +
-		(uint32(resp[11]))&0x000000ff
-	if int(respBodyLen) != nr-GRN_GQTP_HEADER_SIZE {
-		return b, fmt.Errorf("invalid body size: [%d]", respBodyLen)
-	}
-
-	return resp[GRN_GQTP_HEADER_SIZE:nr], err
 }
 
-func (client *GroongaClient) callHTTP(command string, params map[string]string) (b []byte, err error) {
-	v := url.Values{}
-	for value, name := range params {
-		v.Set(value, name)
+// Benchmarks
+func BenchmarkHTTPClient(b *testing.B) {
+	client := NewGroongaClient("http", "localhost", 10041)
+	params := map[string]string{
+		"table": "Users",
+		"query": "name:@test",
 	}
-	requestUrl := fmt.Sprintf("%s://%s:%d/d/%s?%s",
-		client.Protocol, client.Host, client.Port, command, v.Encode())
-	resp, err := doGet(requestUrl)
-	if err != nil {
-		return nil, fmt.Errorf("http.Get() error: %v", err)
-	}
-	defer resp.Body.Close()
-
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("response read error: %v", err)
-	}
-
-	return body, err
-}
-
-func (client *GroongaClient) Call(command string, params map[string]string) (result GroongaResult, err error) {
-	var body []byte
-	if client.Protocol == "gqtp" {
-		// GQTP
-		body, err = client.callGQTP(command, params)
-	} else {
-		// HTTP
-		body, err = client.callHTTP(command, params)
-	}
-	if err != nil {
-		log.Println(err)
-		return result, err
-	}
-
-	result, err = client.setResult(body)
-	if err != nil {
-		return result, err
-	}
-
-	return result, nil
-}
-
-func (client *GroongaClient) setResult(body []byte) (result GroongaResult, err error) {
-	result.RawData = string(body)
-
-	var data interface{}
-	if err := json.Unmarshal(body, &data); err != nil {
-		return result, err
-	}
-
-	if client.Protocol == "http" {
-		grnInfo := data.([]interface{})
-		grnHeader := grnInfo[0].([]interface{})
-		result.Status = int(grnHeader[0].(float64))
-		result.StartTime = grnHeader[1].(float64)
-		result.ElapsedTime = grnHeader[2].(float64)
-		if len(grnHeader) == 3 {
-			// groonga response ok
-			result.Body = grnInfo[1]
-		} else {
-			// groonga response ng
-			result.Body = grnHeader[3]
+	for n := 0; n < b.N; n++ {
+		result, _ := client.Call("select", params)
+		if len(result.RawData) == 0 {
+			b.Errorf("response body not found")
 		}
-	} else {
-		result.Body = data
 	}
+}
 
-	return result, nil
+func BenchmarkGQTPClient(b *testing.B) {
+	client := NewGroongaClient("gqtp", "localhost", 10043)
+	params := map[string]string{
+		"table": "Users",
+		"query": "name:@Jim",
+	}
+	for n := 0; n < b.N; n++ {
+		result, _ := client.Call("select", params)
+		if len(result.RawData) == 0 {
+			b.Errorf("response body not found")
+		}
+	}
 }
