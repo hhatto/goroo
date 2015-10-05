@@ -9,12 +9,11 @@ import (
 )
 
 type httpClient struct {
-	host string
+	raw_url string
 }
 
 func (h *httpClient) Call(command string, params map[string]string) (*GroongaResult, error) {
-	rawurl := fmt.Sprintf("%s://%s", "http", h.host)
-	body, err := runCommand(rawurl, command, params)
+	body, err := runCommand(h.raw_url, command, params)
 	if err != nil {
 		return nil, err
 	}

@@ -20,7 +20,8 @@ func TestHttp_TableList_Empty_Success(t *testing.T) {
 	defer ts.Close()
 
 	u, _ := url.Parse(ts.URL)
-	client := newHttpClient(u.Host)
+	client := newHttpClient(fmt.Sprintf("%s://%s", u.Scheme, u.Host))
+
 	res, err := client.Call("table_list", map[string]string{})
 	if err != nil {
 		t.Error(err)
@@ -39,7 +40,7 @@ func TestHttp_TableList_Count1_Success(t *testing.T) {
 	defer ts.Close()
 
 	u, _ := url.Parse(ts.URL)
-	client := newHttpClient(u.Host)
+	client := newHttpClient(fmt.Sprintf("%s://%s", u.Scheme, u.Host))
 
 	res, err := client.Call("table_list", map[string]string{})
 	if err != nil {
@@ -59,7 +60,7 @@ func TestHttp_ColumnCreate_UserName_Success(t *testing.T) {
 	defer ts.Close()
 
 	u, _ := url.Parse(ts.URL)
-	client := newHttpClient(u.Host)
+	client := newHttpClient(fmt.Sprintf("%s://%s", u.Scheme, u.Host))
 
 	res, err := client.Call("table_list", map[string]string{})
 	if err != nil {
@@ -79,7 +80,7 @@ func TestHttp_ColumnCreate_UserName_Fail(t *testing.T) {
 	defer ts.Close()
 
 	u, _ := url.Parse(ts.URL)
-	client := newHttpClient(u.Host)
+	client := newHttpClient(fmt.Sprintf("%s://%s", u.Scheme, u.Host))
 
 	res, err := client.Call("table_list", map[string]string{})
 	if err == nil {
