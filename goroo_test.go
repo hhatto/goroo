@@ -63,6 +63,54 @@ func TestHttp_TableList_Count1_Success(t *testing.T) {
 	}
 }
 
+func TestHttp_ColumnCreate_UserName_Success(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		const body = "[[0,1444025635.392,0.00300002098083496],true]"
+		fmt.Fprintln(w, body)
+	}))
+	defer ts.Close()
+
+	u, err := url.Parse(ts.URL)
+	if err != nil {
+		t.Error(err)
+	}
+	client := NewHttpClient(u.Host)
+	res, err := client.Call("table_list", map[string]string{})
+	if err != nil {
+		t.Error(err)
+	}
+	if res.Status != 0 {
+		t.Errorf("status not zero.[%d]", res.Status)
+	}
+	if res.Body.(bool) != true {
+		t.Errorf("body fail.[%s]", res.Body)
+	}
+}
+
+func TestHttp_ColumnCreate_UserName_Fail(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		const body = "[[-22,1444025814.842,0.0,\"already used name was assigned: <user_name>\",[[\"grn_obj_register\",\"db.c\",8966]]],false]"
+		fmt.Fprintln(w, body)
+	}))
+	defer ts.Close()
+
+	u, err := url.Parse(ts.URL)
+	if err != nil {
+		t.Error(err)
+	}
+	client := NewHttpClient(u.Host)
+	res, err := client.Call("table_list", map[string]string{})
+	if err == nil {
+		t.Errorf("err is nil")
+	}
+	if res.Status != -22 {
+		t.Errorf("status not zero.[%d]", res.Status)
+	}
+	if res.Body.(bool) != false {
+		t.Errorf("body fail.[%s]", res.Body)
+	}
+}
+
 func TestHTTPClient(t *testing.T) {
 	t.SkipNow()
 	doGet = func(string) (*http.Response, error) {
