@@ -3,7 +3,10 @@ package goroo
 import (
 	"bufio"
 	"fmt"
+	"net"
 	"net/http"
+	"net/url"
+	"strconv"
 	"strings"
 
 	"testing"
@@ -11,6 +14,29 @@ import (
 
 type Response struct {
 	path, query, contenttype, body string
+}
+
+func Test_TableList_Empty_Success(t *testing.T) {
+	const body = "[[0,1444022807.258,0.0],[[[\"id\",\"UInt32\"],[\"name\",\"ShortText\"],[\"path\",\"ShortText\"],[\"flags\",\"ShortText\"],[\"domain\",\"ShortText\"],[\"range\",\"ShortText\"],[\"default_tokenizer\",\"ShortText\"],[\"normalizer\",\"ShortText\"]]]]"
+	ts := newServer(body)
+	defer ts.Close()
+
+	u, _ := url.Parse(ts.URL)
+	schema := u.Scheme
+	host, p, _ := net.SplitHostPort(u.Host)
+	port, _ := strconv.Atoi(p)
+	client := NewClient(schema, host, port)
+
+	res, err := client.Call("table_list", map[string]string{})
+	if err != nil {
+		t.Error(err)
+	}
+	if res.Status != 0 {
+		t.Errorf("status not zero.[%d]", res.Status)
+	}
+	if len(res.Body.([]interface{})) != 1 {
+		t.Errorf("body fail.[%s]", res.Body)
+	}
 }
 
 func TestHTTPClient(t *testing.T) {
