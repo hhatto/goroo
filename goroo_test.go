@@ -16,6 +16,13 @@ type Response struct {
 	path, query, contenttype, body string
 }
 
+func Test_Unsupported_Protocol_IsNil(t *testing.T) {
+	client := NewClient("json", "localhost", 10041)
+	if client != nil {
+		t.Error("return is not error.")
+	}
+}
+
 func Test_TableList_Empty_Success(t *testing.T) {
 	const body = "[[0,1444022807.258,0.0],[[[\"id\",\"UInt32\"],[\"name\",\"ShortText\"],[\"path\",\"ShortText\"],[\"flags\",\"ShortText\"],[\"domain\",\"ShortText\"],[\"range\",\"ShortText\"],[\"default_tokenizer\",\"ShortText\"],[\"normalizer\",\"ShortText\"]]]]"
 	ts := newServer(body)
