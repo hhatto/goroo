@@ -141,23 +141,23 @@ type GroongaResult struct {
 }
 
 type Client interface {
-	Call(command string, params map[string]string) (GroongaResult, error)
+	Call(command string, params map[string]string) (*GroongaResult, error)
 }
 
 type HttpClient struct {
 	host string
 }
 
-func (h *HttpClient) Call(command string, params map[string]string) (result GroongaResult, err error) {
+func (h *HttpClient) Call(command string, params map[string]string) (*GroongaResult, error) {
 	rawurl := fmt.Sprintf("%s://%s", "http", h.host)
 	body, err := callHTTP(rawurl, command, params)
 	if err != nil {
-		return
+		return nil, err
 	}
 	return setResult(body)
 }
 
-func callHTTP(rawurl, command string, params map[string]string) (b []byte, err error) {
+func callHTTP(rawurl, command string, params map[string]string) ([]byte, error) {
 	v := url.Values{}
 	for value, name := range params {
 		v.Set(value, name)
@@ -165,28 +165,28 @@ func callHTTP(rawurl, command string, params map[string]string) (b []byte, err e
 	requestUrl := fmt.Sprintf("%s/d/%s?%s", rawurl, command, v.Encode())
 	resp, err := http.Get(requestUrl)
 	if err != nil {
-		return nil, fmt.Errorf("http.Get() error: %v", err)
+		return nil, err
 	}
 	defer resp.Body.Close()
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("response read error: %v", err)
+		return nil, err
 	}
 
-	return body, err
+	return body, nil
 }
 
-func setResult(body []byte) (result GroongaResult, err error) {
-	result.RawData = string(body)
-
+func setResult(body []byte) (result *GroongaResult, err error) {
 	var data interface{}
-	if err := json.Unmarshal(body, &data); err != nil {
-		return result, err
+	if err = json.Unmarshal(body, &data); err != nil {
+		return nil, err
 	}
 
 	grnInfo := data.([]interface{})
 	grnHeader := grnInfo[0].([]interface{})
+	result = new(GroongaResult)
+	result.RawData = string(body)
 	result.Status = int(grnHeader[0].(float64))
 	result.StartTime = grnHeader[1].(float64)
 	result.ElapsedTime = grnHeader[2].(float64)
@@ -202,7 +202,7 @@ func NewHttpClient(host string) Client {
 	return &HttpClient{host}
 }
 
-func NewGroongaClient(protocol, host string, port int) Client {
+func NewGroongaClient(protocol, host string, port int) *GroongaClient {
 	client := &GroongaClient{
 		Protocol: protocol,
 		Host:     host,
