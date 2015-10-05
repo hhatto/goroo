@@ -190,12 +190,9 @@ func setResult(body []byte) (result GroongaResult, err error) {
 	result.Status = int(grnHeader[0].(float64))
 	result.StartTime = grnHeader[1].(float64)
 	result.ElapsedTime = grnHeader[2].(float64)
-	if len(grnHeader) == 3 {
-		// groonga response ok
-		result.Body = grnInfo[1]
-	} else {
-		// groonga response ng
-		result.Body = grnHeader[3]
+	result.Body = grnInfo[1]
+	if result.Status != 0 {
+		return result, fmt.Errorf("%d - %s", result.Status, grnHeader[3])
 	}
 
 	return result, nil
