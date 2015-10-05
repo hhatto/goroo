@@ -15,7 +15,7 @@ type Response struct {
 	path, query, contenttype, body string
 }
 
-func TestHttp_Conncet_Success(t *testing.T) {
+func TestHttp_TableList_Empty_Success(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		const body = "[[0,1444022807.258,0.0],[[[\"id\",\"UInt32\"],[\"name\",\"ShortText\"],[\"path\",\"ShortText\"],[\"flags\",\"ShortText\"],[\"domain\",\"ShortText\"],[\"range\",\"ShortText\"],[\"default_tokenizer\",\"ShortText\"],[\"normalizer\",\"ShortText\"]]]]"
 		fmt.Fprintln(w, body)
