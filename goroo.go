@@ -140,7 +140,72 @@ type GroongaResult struct {
 	Body        interface{}
 }
 
-func NewGroongaClient(protocol, host string, port int) *GroongaClient {
+type Client interface {
+	Call(command string, params map[string]string) (GroongaResult, error)
+}
+
+type HttpClient struct {
+	host string
+}
+
+func (h *HttpClient) Call(command string, params map[string]string) (result GroongaResult, err error) {
+	rawurl := fmt.Sprintf("%s://%s", "http", h.host)
+	body, err := callHTTP(rawurl, command, params)
+	if err != nil {
+		return
+	}
+	return setResult(body)
+}
+
+func callHTTP(rawurl, command string, params map[string]string) (b []byte, err error) {
+	v := url.Values{}
+	for value, name := range params {
+		v.Set(value, name)
+	}
+	requestUrl := fmt.Sprintf("%s/d/%s?%s", rawurl, command, v.Encode())
+	resp, err := http.Get(requestUrl)
+	if err != nil {
+		return nil, fmt.Errorf("http.Get() error: %v", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("response read error: %v", err)
+	}
+
+	return body, err
+}
+
+func setResult(body []byte) (result GroongaResult, err error) {
+	result.RawData = string(body)
+
+	var data interface{}
+	if err := json.Unmarshal(body, &data); err != nil {
+		return result, err
+	}
+
+	grnInfo := data.([]interface{})
+	grnHeader := grnInfo[0].([]interface{})
+	result.Status = int(grnHeader[0].(float64))
+	result.StartTime = grnHeader[1].(float64)
+	result.ElapsedTime = grnHeader[2].(float64)
+	if len(grnHeader) == 3 {
+		// groonga response ok
+		result.Body = grnInfo[1]
+	} else {
+		// groonga response ng
+		result.Body = grnHeader[3]
+	}
+
+	return result, nil
+}
+
+func NewHttpClient(host string) Client {
+	return &HttpClient{host}
+}
+
+func NewGroongaClient(protocol, host string, port int) Client {
 	client := &GroongaClient{
 		Protocol: protocol,
 		Host:     host,
@@ -283,7 +348,7 @@ func (client *GroongaClient) setResult(body []byte) (result GroongaResult, err e
 			result.Body = grnHeader[3]
 		}
 	} else {
-		result.Body = data.([]interface{})
+		result.Body = data
 	}
 
 	return result, nil
