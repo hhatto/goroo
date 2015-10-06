@@ -8,10 +8,6 @@ import (
 	"testing"
 )
 
-type Response struct {
-	path, query, contenttype, body string
-}
-
 func Test_Unsupported_Protocol_IsNil(t *testing.T) {
 	client := NewClient("json", "localhost", 10041)
 	if client != nil {
@@ -32,7 +28,7 @@ func Test_ClinetHttp_TableList_Empty_Success(t *testing.T) {
 
 	res, err := client.Call("table_list", map[string]string{})
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 	if res.Status != 0 {
 		t.Errorf("status not zero.[%d]", res.Status)
@@ -52,7 +48,7 @@ func Test_ClinetGqtp_TableList_Empty_Success(t *testing.T) {
 	client := NewClient("gqtp", host, port)
 	res, err := client.Call("table_list", map[string]string{})
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 	if res.Status != 0 {
 		t.Errorf("status not zero.[%d]", res.Status)
