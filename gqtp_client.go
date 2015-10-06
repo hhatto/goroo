@@ -125,15 +125,15 @@ type gqtpClient struct {
 }
 
 func (c *gqtpClient) Call(command string, params map[string]string) (*GroongaResult, error) {
-	body, err := callGQTP(c.address, command, params)
+	body, err := c.run(c.address, command, params)
 	if err != nil {
 		return nil, err
 	}
-	res, err := setResult(body)
+	res, err := c.parse(body)
 	return &res, nil
 }
 
-func callGQTP(address, command string, params map[string]string) (b []byte, err error) {
+func (c *gqtpClient) run(address, command string, params map[string]string) (b []byte, err error) {
 	conn, err := net.Dial("tcp", address)
 	if err != nil {
 		return b, err
@@ -198,7 +198,7 @@ func callGQTP(address, command string, params map[string]string) (b []byte, err 
 	return resp[cGrnGqtpHeaderSize:nr], err
 }
 
-func setResult(body []byte) (result GroongaResult, err error) {
+func (c *gqtpClient) parse(body []byte) (result GroongaResult, err error) {
 	result.RawData = string(body)
 
 	var data interface{}
