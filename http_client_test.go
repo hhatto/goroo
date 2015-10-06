@@ -101,3 +101,27 @@ func TestHttp_ColumnCreate_UserName_Fail(t *testing.T) {
 		t.Errorf("body fail.[%s]", res.Body)
 	}
 }
+
+func TestHttp_Select_TableNotFound(t *testing.T) {
+	const body = "[[-22,1444109599.174,0.0,\"invalid table name: <Users>\",[[\"grn_select\",\"proc.c\",1217]]]]"
+	ts := newServer(body)
+	defer ts.Close()
+
+	u, _ := url.Parse(ts.URL)
+	client := newHttpClient(fmt.Sprintf("%s://%s", u.Scheme, u.Host))
+
+	res, err := client.Call("column_create", map[string]string{
+		"table": "GQTPTable",
+		"name":  "user_name",
+		"type":  "ShortText",
+	})
+	if err == nil {
+		t.Errorf("err is nil")
+	}
+	if res.Status != -22 {
+		t.Errorf("status not zero.[%d]", res.Status)
+	}
+	if res.Body != nil {
+		t.Errorf("body is not nil")
+	}
+}
