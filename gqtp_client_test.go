@@ -21,7 +21,7 @@ func TestGqtp_TableList_Empty_Success(t *testing.T) {
 	client := newGqtpClient(mock.Address)
 	res, err := client.Call("table_list", map[string]string{})
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 	if res.Status != 0 {
 		t.Errorf("status not zero.[%d]", res.Status)
@@ -39,7 +39,7 @@ func TestGqtp_TableList_Count1_Success(t *testing.T) {
 	client := newGqtpClient(mock.Address)
 	res, err := client.Call("table_list", map[string]string{})
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 	if res.Status != 0 {
 		t.Errorf("status not zero.[%d]", res.Status)
@@ -61,12 +61,31 @@ func TestGqtp_ColumnCreate_UserName_Success(t *testing.T) {
 		"type":  "ShortText",
 	})
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 	if res.Status != 0 {
 		t.Errorf("status not zero.[%d]", res.Status)
 	}
 	if res.Body.(bool) != true {
 		t.Errorf("body fail.[%s]", res.Body)
+	}
+}
+
+func TestGqtp_ColumnCreate_UserName_Fail(t *testing.T) {
+	body := []byte{0xc7, 0x2, 0x0, 0x0, 0x0, 0x2, 0xff, 0xea, 0x0, 0x0, 0x0, 0x5, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x66, 0x61, 0x6c, 0x73, 0x65}
+	mock := gqtpMock(body)
+	defer mock.Close()
+
+	client := newGqtpClient(mock.Address)
+	res, err := client.Call("column_create", map[string]string{
+		"table": "GQTPTable",
+		"name":  "user_name",
+		"type":  "ShortText",
+	})
+	if err == nil {
+		t.Errorf("err is nil")
+	}
+	if res != nil {
+		t.Errorf("res is not nil")
 	}
 }
