@@ -48,3 +48,25 @@ func TestGqtp_TableList_Count1_Success(t *testing.T) {
 		t.Errorf("body fail.[%s]", res.Body)
 	}
 }
+
+func TestGqtp_ColumnCreate_UserName_Success(t *testing.T) {
+	body := []byte{0xc7, 0x2, 0x0, 0x0, 0x0, 0x2, 0x0, 0x0, 0x0, 0x0, 0x0, 0x4, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x74, 0x72, 0x75, 0x65}
+	mock := gqtpMock(body)
+	defer mock.Close()
+
+	client := newGqtpClient(mock.Address)
+	res, err := client.Call("column_create", map[string]string{
+		"table": "GQTPTable",
+		"name":  "user_name",
+		"type":  "ShortText",
+	})
+	if err != nil {
+		t.Error(err)
+	}
+	if res.Status != 0 {
+		t.Errorf("status not zero.[%d]", res.Status)
+	}
+	if res.Body.(bool) != true {
+		t.Errorf("body fail.[%s]", res.Body)
+	}
+}
