@@ -148,6 +148,9 @@ func NewClient(protocol, host string, port int) Client {
 	if protocol == "http" {
 		return newHttpClient(fmt.Sprintf("%s://%s:%d", protocol, host, port))
 	}
+	if protocol == "gqtp" {
+		return newGqtpClient(fmt.Sprintf("%s:%d", host, port))
+	}
 	return nil
 }
 
