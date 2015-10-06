@@ -14,4 +14,7 @@ func TestGqtp_TableList_Empty_Success(t *testing.T) {
 	if res.Status != 0 {
 		t.Errorf("status not zero.[%d]", res.Status)
 	}
+	if len(res.Body.([]interface{})) != 1 {
+		t.Errorf("body fail.[%s]", res.Body)
+	}
 }
