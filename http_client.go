@@ -48,7 +48,9 @@ func parseResult(body []byte) (*GroongaResult, error) {
 	result.Status = int(grnHeader[0].(float64))
 	result.StartTime = grnHeader[1].(float64)
 	result.ElapsedTime = grnHeader[2].(float64)
-	result.Body = grnInfo[1]
+	if len(grnInfo) == 2 {
+		result.Body = grnInfo[1]
+	}
 	if result.Status != 0 {
 		return result, fmt.Errorf("%d - %s", result.Status, grnHeader[3])
 	}
