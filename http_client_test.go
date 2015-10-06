@@ -62,7 +62,11 @@ func TestHttp_ColumnCreate_UserName_Success(t *testing.T) {
 	u, _ := url.Parse(ts.URL)
 	client := newHttpClient(fmt.Sprintf("%s://%s", u.Scheme, u.Host))
 
-	res, err := client.Call("table_list", map[string]string{})
+	res, err := client.Call("column_create", map[string]string{
+		"table": "GQTPTable",
+		"name":  "user_name",
+		"type":  "ShortText",
+	})
 	if err != nil {
 		t.Error(err)
 	}
@@ -82,7 +86,11 @@ func TestHttp_ColumnCreate_UserName_Fail(t *testing.T) {
 	u, _ := url.Parse(ts.URL)
 	client := newHttpClient(fmt.Sprintf("%s://%s", u.Scheme, u.Host))
 
-	res, err := client.Call("table_list", map[string]string{})
+	res, err := client.Call("column_create", map[string]string{
+		"table": "GQTPTable",
+		"name":  "user_name",
+		"type":  "ShortText",
+	})
 	if err == nil {
 		t.Errorf("err is nil")
 	}
