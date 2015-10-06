@@ -13,14 +13,14 @@ type httpClient struct {
 }
 
 func (h *httpClient) Call(command string, params map[string]string) (*GroongaResult, error) {
-	body, err := runCommand(h.raw_url, command, params)
+	body, err := h.run(h.raw_url, command, params)
 	if err != nil {
 		return nil, err
 	}
-	return parseResult(body)
+	return h.parse(body)
 }
 
-func runCommand(rawurl, command string, params map[string]string) ([]byte, error) {
+func (h *httpClient) run(rawurl, command string, params map[string]string) ([]byte, error) {
 	v := url.Values{}
 	for value, name := range params {
 		v.Set(value, name)
@@ -35,7 +35,7 @@ func runCommand(rawurl, command string, params map[string]string) ([]byte, error
 	return ioutil.ReadAll(resp.Body)
 }
 
-func parseResult(body []byte) (*GroongaResult, error) {
+func (h *httpClient) parse(body []byte) (*GroongaResult, error) {
 	var data interface{}
 	if err := json.Unmarshal(body, &data); err != nil {
 		return nil, err
