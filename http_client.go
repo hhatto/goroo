@@ -32,12 +32,7 @@ func runCommand(rawurl, command string, params map[string]string) ([]byte, error
 	}
 	defer resp.Body.Close()
 
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	return body, nil
+	return ioutil.ReadAll(resp.Body)
 }
 
 func parseResult(body []byte) (*GroongaResult, error) {
