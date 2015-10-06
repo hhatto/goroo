@@ -8,15 +8,15 @@ import (
 )
 
 const (
-	GRN_GQTP_FLAGS_MORE  byte = 0x01
-	GRN_GQTP_FLAGS_TAIL       = 0x02
-	GRN_GQTP_FLAGS_HEAD       = 0x04
-	GRN_GQTP_FLAGS_QUIET      = 0x08
-	GRN_GQTP_FLAGS_QUIT       = 0x10
+	cGrnGqtpFlagsMore  byte = 0x01
+	cGrnGqtpFlagsTail       = 0x02
+	cGrnGqtpFlagsHead       = 0x04
+	cGrnGqtpFlagsQuiet      = 0x08
+	cGrnGqtpFlagsQuit       = 0x10
 )
-const GRN_GQTP_HEADER_SIZE int = 24
+const cGrnGqtpHeaderSize int = 24
 
-var GRN_GQTP_STATUS map[uint32]string = map[uint32]string{
+var grnReturnCode map[uint32]string = map[uint32]string{
 	0:     "SUCCESS",
 	1:     "END_OF_DATA",
 	65535: "UNKNOWN_ERROR",
@@ -92,7 +92,7 @@ var GRN_GQTP_STATUS map[uint32]string = map[uint32]string{
 	65465: "UNSUPPORTED_COMMAND_VERSION",
 }
 
-type GQTP struct {
+type gqtpStruct struct {
 	Protocol  byte
 	QueryType byte
 	KeyLength []byte // 2byte
@@ -105,7 +105,7 @@ type GQTP struct {
 	Body      []byte
 }
 
-func (gqtp *GQTP) toByte() (b []byte) {
+func (gqtp *gqtpStruct) toByte() (b []byte) {
 	buffer := bytes.NewBuffer(b)
 	buffer.WriteByte(gqtp.Protocol)
 	buffer.WriteByte(gqtp.QueryType)
@@ -147,12 +147,12 @@ func callGQTP(address, command string, params map[string]string) (b []byte, err 
 	bodyLen := uint32(len(buffer.String()))
 
 	// encode request header and body
-	gqtp := GQTP{}
+	gqtp := gqtpStruct{}
 	gqtp.Protocol = 0xc7
 	gqtp.QueryType = 0x02            // default is JSON
 	gqtp.KeyLength = make([]byte, 2) // not used
 	gqtp.Level = 0x00                // not used
-	gqtp.Flags = GRN_GQTP_FLAGS_TAIL
+	gqtp.Flags = cGrnGqtpFlagsTail
 	gqtp.Status = make([]byte, 2) // not used
 	gqtp.Size = []byte{
 		byte(0xff000000 & bodyLen),
@@ -180,22 +180,22 @@ func callGQTP(address, command string, params map[string]string) (b []byte, err 
 	if 0xc7 != byte(resp[0]) {
 		return b, fmt.Errorf("check response protocol NG 0x%x", resp[0])
 	}
-	if GRN_GQTP_FLAGS_TAIL != resp[5] {
+	if cGrnGqtpFlagsTail != resp[5] {
 		return b, fmt.Errorf("flag: %v is not support", resp[5])
 	}
 	status := uint32(resp[7]) + uint32(resp[6])<<8
 	if status != 0 {
-		return b, fmt.Errorf("status error: [%d]%s", status, GRN_GQTP_STATUS[status])
+		return b, fmt.Errorf("status error: [%d]%s", status, grnReturnCode[status])
 	}
 	respBodyLen := (uint32(resp[8])<<24)&0xff000000 +
 		(uint32(resp[9])<<16)&0x00ff0000 +
 		(uint32(resp[10])<<8)&0x0000ff00 +
 		(uint32(resp[11]))&0x000000ff
-	if int(respBodyLen) != nr-GRN_GQTP_HEADER_SIZE {
+	if int(respBodyLen) != nr-cGrnGqtpHeaderSize {
 		return b, fmt.Errorf("invalid body size: [%d]", respBodyLen)
 	}
 
-	return resp[GRN_GQTP_HEADER_SIZE:nr], err
+	return resp[cGrnGqtpHeaderSize:nr], err
 }
 
 func setResult(body []byte) (result GroongaResult, err error) {
