@@ -1,28 +1,31 @@
 package goroo
 
 import (
-	"io"
 	"net"
 )
 
 type gqtpServer struct {
 	Address  string
 	Listener net.Listener
-	handler  func(io.Writer, io.Reader)
+	handler  func(conn net.Conn)
+	quit     chan bool
 }
 
 func (g *gqtpServer) start() {
 	for {
 		conn, err := g.Listener.Accept()
 		if err != nil {
-			continue
+			return
 		}
-		g.handler(conn, conn)
-		conn.Close()
+		go func() {
+			g.handler(conn)
+			g.quit <- true
+		}()
 	}
 }
 
 func (g *gqtpServer) Close() {
+	<-g.quit
 	g.Listener.Close()
 }
 
@@ -36,9 +39,9 @@ func newGqtpLocalListener() net.Listener {
 	return l
 }
 
-func newGqtpServer(handler func(io.Writer, io.Reader)) *gqtpServer {
+func newGqtpServer(handler func(conn net.Conn)) *gqtpServer {
 	l := newGqtpLocalListener()
-	gs := &gqtpServer{l.Addr().String(), l, handler}
+	gs := &gqtpServer{l.Addr().String(), l, handler, make(chan bool)}
 	go gs.start()
 	return gs
 }
