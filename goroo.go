@@ -12,6 +12,14 @@ type GroongaResult struct {
 	Body        interface{}
 }
 
+// Deprecated: It is scheduled to be abolished.
+type GroongaClient struct {
+	Protocol string
+	Host     string
+	Port     int
+	client   Client
+}
+
 type Client interface {
 	Call(command string, params map[string]string) (*GroongaResult, error)
 }
@@ -24,4 +32,20 @@ func NewClient(protocol, host string, port int) Client {
 		return newGqtpClient(fmt.Sprintf("%s:%d", host, port))
 	}
 	return nil
+}
+
+// Deprecated: This function is scheduled to be replaced with NewClient.
+func NewGroongaClient(protocol, host string, port int) *GroongaClient {
+	c := &GroongaClient{
+		Protocol: protocol,
+		Host:     host,
+		Port:     port,
+	}
+	c.client = NewClient(protocol, host, port)
+	return c
+}
+
+// Deprecated: This function is scheduled to be replaced with NewClient.
+func (g *GroongaClient) Call(command string, params map[string]string) (*GroongaResult, error) {
+	return g.client.Call(command, params)
 }
