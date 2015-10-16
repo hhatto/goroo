@@ -14,7 +14,7 @@ func newServer(body string) *httptest.Server {
 	}))
 }
 
-func TestHttp_TableList_Empty_Success(t *testing.T) {
+func TestHttpTableListEmptySuccess(t *testing.T) {
 	const body = "[[0,1444022807.258,0.0],[[[\"id\",\"UInt32\"],[\"name\",\"ShortText\"],[\"path\",\"ShortText\"],[\"flags\",\"ShortText\"],[\"domain\",\"ShortText\"],[\"range\",\"ShortText\"],[\"default_tokenizer\",\"ShortText\"],[\"normalizer\",\"ShortText\"]]]]"
 	ts := newServer(body)
 	defer ts.Close()
@@ -34,7 +34,7 @@ func TestHttp_TableList_Empty_Success(t *testing.T) {
 	}
 }
 
-func TestHttp_TableList_Count1_Success(t *testing.T) {
+func TestHttpTableListCount1Success(t *testing.T) {
 	const body = "[[0,1444024497.318,0.0469999313354492],[[[\"id\",\"UInt32\"],[\"name\",\"ShortText\"],[\"path\",\"ShortText\"],[\"flags\",\"ShortText\"],[\"domain\",\"ShortText\"],[\"range\",\"ShortText\"],[\"default_tokenizer\",\"ShortText\"],[\"normalizer\",\"ShortText\"]],[256,\"TestGQTPClinet\",\"./markdown.db.0000100\",\"TABLE_HASH_KEY|PERSISTENT\",null,null,null,null]]]"
 	ts := newServer(body)
 	defer ts.Close()
@@ -54,7 +54,7 @@ func TestHttp_TableList_Count1_Success(t *testing.T) {
 	}
 }
 
-func TestHttp_ColumnCreate_UserName_Success(t *testing.T) {
+func TestHttpColumnCreateUserNameSuccess(t *testing.T) {
 	const body = "[[0,1444025635.392,0.00300002098083496],true]"
 	ts := newServer(body)
 	defer ts.Close()
@@ -78,7 +78,7 @@ func TestHttp_ColumnCreate_UserName_Success(t *testing.T) {
 	}
 }
 
-func TestHttp_ColumnCreate_UserName_Fail(t *testing.T) {
+func TestHttpColumnCreateUserNameFail(t *testing.T) {
 	const body = "[[-22,1444025814.842,0.0,\"already used name was assigned: <user_name>\",[[\"grn_obj_register\",\"db.c\",8966]]],false]"
 	ts := newServer(body)
 	defer ts.Close()
@@ -102,7 +102,7 @@ func TestHttp_ColumnCreate_UserName_Fail(t *testing.T) {
 	}
 }
 
-func TestHttp_Select_TableNotFound(t *testing.T) {
+func TestHttpSelectTableNotFound(t *testing.T) {
 	const body = "[[-22,1444109599.174,0.0,\"invalid table name: <Users>\",[[\"grn_select\",\"proc.c\",1217]]]]"
 	ts := newServer(body)
 	defer ts.Close()

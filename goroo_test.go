@@ -76,14 +76,14 @@ const (
 ]`
 )
 
-func Test_Unsupported_Protocol_IsNil(t *testing.T) {
+func TestUnsupportedProtocolIsNil(t *testing.T) {
 	client := NewClient("json", "localhost", 10041)
 	if client != nil {
 		t.Error("return is not error.")
 	}
 }
 
-func Test_ClinetHttp_TableList_Empty_Success(t *testing.T) {
+func TestClinetHttpTableListEmptySuccess(t *testing.T) {
 	body := cTEST_BODY
 	ts := newServer(body)
 	defer ts.Close()
@@ -106,7 +106,7 @@ func Test_ClinetHttp_TableList_Empty_Success(t *testing.T) {
 	}
 }
 
-func Test_ClinetGqtp_TableList_Empty_Success(t *testing.T) {
+func TestClinetGqtpTableListEmptySuccess(t *testing.T) {
 	body := byteBody
 	mock := gqtpMock(body)
 	defer mock.Close()
@@ -127,7 +127,7 @@ func Test_ClinetGqtp_TableList_Empty_Success(t *testing.T) {
 }
 
 // Deprecated: It is scheduled to be abolished.
-func TestNewGroongaClient_Unsupported_Protocol_IsNil(t *testing.T) {
+func TestNewGroongaClientUnsupportedProtocolIsNil(t *testing.T) {
 	c := NewGroongaClient("json", "localhost", 10041)
 	if c.client != nil {
 		t.Error("return is not error.")
@@ -135,7 +135,7 @@ func TestNewGroongaClient_Unsupported_Protocol_IsNil(t *testing.T) {
 }
 
 // Deprecated: It is scheduled to be abolished.
-func TestNewGroongaClient_ClinetHttp_TableList_Empty_Success(t *testing.T) {
+func TestNewGroongaClientClinetHttpTableListEmptySuccess(t *testing.T) {
 	body := cTEST_BODY
 	ts := newServer(body)
 	defer ts.Close()
@@ -159,7 +159,7 @@ func TestNewGroongaClient_ClinetHttp_TableList_Empty_Success(t *testing.T) {
 }
 
 // Deprecated: It is scheduled to be abolished.
-func TestNewGroongaClient_ClinetGqtp_TableList_Empty_Success(t *testing.T) {
+func TestNewGroongaClientClinetGqtpTableListEmptySuccess(t *testing.T) {
 	body := byteBody
 	mock := gqtpMock(body)
 	defer mock.Close()
