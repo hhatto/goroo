@@ -2,6 +2,7 @@ package goroo
 
 import (
 	"bytes"
+	"encoding/binary"
 	"encoding/json"
 	"fmt"
 	"net"
@@ -95,27 +96,29 @@ var grnReturnCode map[uint32]string = map[uint32]string{
 type gqtpStruct struct {
 	Protocol  byte
 	QueryType byte
-	KeyLength []byte // 2byte
+	KeyLength uint16 // 2byte
 	Level     byte
 	Flags     byte
-	Status    []byte // 2byte
-	Size      []byte // 4byte
-	Opaque    []byte // 4byte
-	Cas       []byte // 8byte
+	Status    uint16 // 2byte
+	Size      uint32 // 4byte
+	Opaque    uint32 // 4byte
+	Cas       uint64 // 8byte
 	Body      []byte
 }
 
-func (gqtp *gqtpStruct) toByte() (b []byte) {
-	buffer := bytes.NewBuffer(b)
-	buffer.WriteByte(gqtp.Protocol)
-	buffer.WriteByte(gqtp.QueryType)
-	buffer.Write(gqtp.KeyLength)
-	buffer.WriteByte(gqtp.Level)
-	buffer.WriteByte(gqtp.Flags)
-	buffer.Write(gqtp.Status)
-	buffer.Write(gqtp.Size)
-	buffer.Write(gqtp.Opaque)
-	buffer.Write(gqtp.Cas)
+func (gqtp *gqtpStruct) toByte(buffer *bytes.Buffer) []byte {
+	scratch := make([]byte, cGrnGqtpHeaderSize)
+	scratch[0] = gqtp.Protocol
+	scratch[1] = gqtp.QueryType
+	binary.BigEndian.PutUint16(scratch, gqtp.KeyLength)
+	scratch[4] = gqtp.Level
+	scratch[5] = gqtp.Flags
+	binary.BigEndian.PutUint16(scratch, gqtp.Status)
+	binary.BigEndian.PutUint32(scratch, gqtp.Size)
+	binary.BigEndian.PutUint32(scratch, gqtp.Opaque)
+	binary.BigEndian.PutUint64(scratch, gqtp.Cas)
+
+	buffer.Write(scratch)
 	buffer.Write(gqtp.Body)
 	return buffer.Bytes()
 }
@@ -144,27 +147,25 @@ func (c *gqtpClient) run(address, command string, params map[string]string) (b [
 	for value, name := range params {
 		buffer.WriteString(fmt.Sprintf(" --%s '%s'", value, name))
 	}
-	bodyLen := uint32(len(buffer.String()))
 
 	// encode request header and body
 	gqtp := gqtpStruct{}
 	gqtp.Protocol = 0xc7
-	gqtp.QueryType = 0x02            // default is JSON
-	gqtp.KeyLength = make([]byte, 2) // not used
-	gqtp.Level = 0x00                // not used
+	gqtp.QueryType = 0x02 // default is JSON
+	gqtp.KeyLength = 0    // not used
+	gqtp.Level = 0x00     // not used
 	gqtp.Flags = cGrnGqtpFlagsTail
-	gqtp.Status = make([]byte, 2) // not used
-	gqtp.Size = []byte{
-		byte(0xff000000 & bodyLen),
-		byte(0x00ff0000 & bodyLen),
-		byte(0x0000ff00 & bodyLen),
-		byte(0x000000ff & bodyLen),
-	}
-	gqtp.Opaque = make([]byte, 4) // not used
-	gqtp.Cas = make([]byte, 8)    // not used
+	gqtp.Status = 0x00 // not used
+	gqtp.Size = uint32(buffer.Len())
+	gqtp.Opaque = 0 // not used
+	gqtp.Cas = 0    // not used
 	gqtp.Body = buffer.Bytes()
 
-	_, err = conn.Write(gqtp.toByte())
+	buf := Buffs.Get().(*bytes.Buffer)
+	msg := gqtp.toByte(buf)
+	Buffs.Put(buf)
+
+	_, err = conn.Write(msg)
 	if err != nil {
 		return b, err
 	}

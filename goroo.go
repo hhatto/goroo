@@ -1,8 +1,20 @@
 package goroo
 
 import (
+	"bytes"
 	"fmt"
+	"sync"
 )
+
+var Buffs sync.Pool
+
+func init() {
+	Buffs = sync.Pool{
+		New: func() interface{} {
+			return new(bytes.Buffer)
+		},
+	}
+}
 
 type GroongaResult struct {
 	RawData     string
