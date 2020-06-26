@@ -12,64 +12,62 @@ $ go get github.com/hhatto/goroo
 ## Usage
 
 ### with HTTP
-  1. Start Groonga Server (with HTTP)
+1. Start Groonga Server (with HTTP)
 
-    ex)
-    ```
-    $ groonga -s -l 8 --log-path ./grn.log --protocol http grn.db
-    ```
+```
+$ groonga -s -l 8 --log-path ./grn.log --protocol http grn.db
+```
 
-  2. execute client code
+2. execute client code
 
-    ```go
-    package main
+```go
+package main
 
-    import (
-        "fmt"
+import (
+    "fmt"
 
-        "github.com/hhatto/goroo"
-    )
+    "github.com/hhatto/goroo"
+)
 
-    func main() {
-        client := goroo.NewClient("http", "localhost", 10041)
-        result, err := client.Call("select", map[string]string{"table": "Users"})
-        if err != nil {
-            fmt.Println("Call() error:", err)
-            return
-        }
-        fmt.Println(result)
+func main() {
+    client := goroo.NewClient("http", "localhost", 10041)
+    result, err := client.Call("select", map[string]string{"table": "Users"})
+    if err != nil {
+        fmt.Println("Call() error:", err)
+        return
     }
-    ```
+    fmt.Println(result)
+}
+```
 
 ### with GQTP
-  1. Start Groonga Server (with GQTP)
+1. Start Groonga Server (with GQTP)
 
-    ex)
-    ```
-    $ groonga -s -l 8 --log-path ./grn.log --protocol gqtp grn.db
-    ```
+```
+$ groonga -s -l 8 --log-path ./grn.log --protocol gqtp grn.db
+```
 
-  2. execute client code
+2. execute client code
 
-    ```go
-    package main
+```go
+package main
 
-    import (
-        "fmt"
+import (
+    "fmt"
 
-        "github.com/hhatto/goroo"
-    )
+    "github.com/hhatto/goroo"
+)
 
-    func main() {
-        client := goroo.NewClient("gqtp", "localhost", 10043)
-        result, err := client.Call("select", map[string]string{"table": "Users"})
-        if err != nil {
-            fmt.Println("Call() error:", err)
-            return
-        }
-        fmt.Println(result)
+func main() {
+    client := goroo.NewClient("gqtp", "localhost", 10043)
+    result, err := client.Call("select", map[string]string{"table": "Users"})
+    if err != nil {
+        fmt.Println("Call() error:", err)
+        return
     }
-    ```
+    fmt.Println(result)
+}
+```
 
 ## License
 MIT
