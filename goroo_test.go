@@ -101,7 +101,7 @@ func TestClinetHttpTableListEmptySuccess(t *testing.T) {
 	if res.Status != 0 {
 		t.Errorf("status not zero.[%d]", res.Status)
 	}
-	if len(res.Body.([]interface{})) != 1 {
+	if len(res.Body.([]any)) != 1 {
 		t.Errorf("body fail.[%s]", res.Body)
 	}
 }
@@ -121,7 +121,7 @@ func TestClinetGqtpTableListEmptySuccess(t *testing.T) {
 	if res.Status != 0 {
 		t.Errorf("status not zero.[%d]", res.Status)
 	}
-	if len(res.Body.([]interface{})) != 1 {
+	if len(res.Body.([]any)) != 1 {
 		t.Errorf("body fail.[%s]", res.Body)
 	}
 }
@@ -153,7 +153,7 @@ func TestNewGroongaClientClinetHttpTableListEmptySuccess(t *testing.T) {
 	if res.Status != 0 {
 		t.Errorf("status not zero.[%d]", res.Status)
 	}
-	if len(res.Body.([]interface{})) != 1 {
+	if len(res.Body.([]any)) != 1 {
 		t.Errorf("body fail.[%s]", res.Body)
 	}
 }
@@ -174,7 +174,7 @@ func TestNewGroongaClientClinetGqtpTableListEmptySuccess(t *testing.T) {
 	if res.Status != 0 {
 		t.Errorf("status not zero.[%d]", res.Status)
 	}
-	if len(res.Body.([]interface{})) != 1 {
+	if len(res.Body.([]any)) != 1 {
 		t.Errorf("body fail.[%s]", res.Body)
 	}
 }
@@ -187,7 +187,7 @@ func BenchmarkHTTPClient(b *testing.B) {
 		"table": "Users",
 		"query": "name:@test",
 	}
-	for n := 0; n < b.N; n++ {
+	for n := 0; b.N > n; n++ {
 		result, _ := client.Call("select", params)
 		if len(result.RawData) == 0 {
 			b.Errorf("response body not found")
@@ -202,7 +202,7 @@ func BenchmarkGQTPClient(b *testing.B) {
 		"table": "Users",
 		"query": "name:@Jim",
 	}
-	for n := 0; n < b.N; n++ {
+	for n := 0; b.N > n; n++ {
 		result, _ := client.Call("select", params)
 		if len(result.RawData) == 0 {
 			b.Errorf("response body not found")

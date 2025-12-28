@@ -130,6 +130,9 @@ func (c *gqtpClient) Call(command string, params map[string]string) (*GroongaRes
 		return nil, err
 	}
 	res, err := c.parse(body)
+	if err != nil {
+		return nil, err
+	}
 	return &res, nil
 }
 
@@ -142,7 +145,7 @@ func (c *gqtpClient) run(address, command string, params map[string]string) (b [
 
 	buffer := bytes.NewBufferString(command)
 	for value, name := range params {
-		buffer.WriteString(fmt.Sprintf(" --%s '%s'", value, name))
+		fmt.Fprintf(buffer, " --%s '%s'", value, name)
 	}
 	bodyLen := uint32(len(buffer.String()))
 
@@ -201,7 +204,7 @@ func (c *gqtpClient) run(address, command string, params map[string]string) (b [
 func (c *gqtpClient) parse(body []byte) (result GroongaResult, err error) {
 	result.RawData = string(body)
 
-	var data interface{}
+	var data any
 	if err := json.Unmarshal(body, &data); err != nil {
 		return result, err
 	}

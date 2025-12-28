@@ -3,7 +3,7 @@ package goroo
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 )
@@ -32,17 +32,17 @@ func (h *httpClient) run(rawurl, command string, params map[string]string) ([]by
 	}
 	defer resp.Body.Close()
 
-	return ioutil.ReadAll(resp.Body)
+	return io.ReadAll(resp.Body)
 }
 
 func (h *httpClient) parse(body []byte) (*GroongaResult, error) {
-	var data interface{}
+	var data any
 	if err := json.Unmarshal(body, &data); err != nil {
 		return nil, err
 	}
 
-	grnInfo := data.([]interface{})
-	grnHeader := grnInfo[0].([]interface{})
+	grnInfo := data.([]any)
+	grnHeader := grnInfo[0].([]any)
 	result := new(GroongaResult)
 	result.RawData = string(body)
 	result.Status = int(grnHeader[0].(float64))
