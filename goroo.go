@@ -9,7 +9,7 @@ type GroongaResult struct {
 	Status      int
 	StartTime   float64
 	ElapsedTime float64
-	Body        interface{}
+	Body        any
 }
 
 // Deprecated: It is scheduled to be abolished.

@@ -44,7 +44,7 @@ func TestGqtpTableListEmptySuccess(t *testing.T) {
 	if res.Status != 0 {
 		t.Errorf("status not zero.[%d]", res.Status)
 	}
-	if len(res.Body.([]interface{})) != 1 {
+	if len(res.Body.([]any)) != 1 {
 		t.Errorf("body fail.[%s]", res.Body)
 	}
 }
@@ -88,7 +88,7 @@ func TestGqtpTableListCount1Success(t *testing.T) {
 	if res.Status != 0 {
 		t.Errorf("status not zero.[%d]", res.Status)
 	}
-	if len(res.Body.([]interface{})) != 2 {
+	if len(res.Body.([]any)) != 2 {
 		t.Errorf("body fail.[%s]", res.Body)
 	}
 }
