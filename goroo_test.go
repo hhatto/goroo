@@ -187,7 +187,7 @@ func BenchmarkHTTPClient(b *testing.B) {
 		"table": "Users",
 		"query": "name:@test",
 	}
-	for n := 0; b.N > n; n++ {
+	for b.Loop() {
 		result, _ := client.Call("select", params)
 		if len(result.RawData) == 0 {
 			b.Errorf("response body not found")
@@ -202,7 +202,7 @@ func BenchmarkGQTPClient(b *testing.B) {
 		"table": "Users",
 		"query": "name:@Jim",
 	}
-	for n := 0; b.N > n; n++ {
+	for b.Loop() {
 		result, _ := client.Call("select", params)
 		if len(result.RawData) == 0 {
 			b.Errorf("response body not found")
